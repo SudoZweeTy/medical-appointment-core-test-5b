@@ -1,0 +1,93 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Patient;
+use App\Models\BloodType;
+use Illuminate\Http\Request;
+
+class PatientController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        return view('admin.patients.index');
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Patient $patient)
+    {
+        $patient->load(['user', 'bloodType']);
+        return view('admin.patients.show', compact('patient'));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Patient $patient)
+    {
+        $bloodTypes = BloodType::all();
+        $patient->load(['user', 'bloodType']);
+
+        return view('admin.patients.edit', compact('patient', 'bloodTypes'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Patient $patient)
+    {
+        // Sanitización del teléfono: eliminar paréntesis, guiones y espacios
+        if ($request->filled('emergency_contact_phone')) {
+            $request->merge([
+                'emergency_contact_phone' => preg_replace('/[^0-9]/', '', $request->input('emergency_contact_phone')),
+            ]);
+        }
+
+        $data = $request->validate([
+            'blood_type_id'            => 'nullable|exists:blood_types,id',
+            'allergies'                => 'nullable|string|max:1000',
+            'chronic_diseases'         => 'nullable|string|max:1000',
+            'surgery_history'          => 'nullable|string|max:1000',
+            'family_history'           => 'nullable|string|max:1000',
+            'observations'             => 'nullable|string|max:1000',
+            'emergency_contact_name'   => 'nullable|string|max:255',
+            'emergency_contact_phone'  => 'nullable|string|digits:10',
+            'emergency_relationship'   => 'nullable|string|max:50',
+        ]);
+
+        // Detectar si hubo cambios reales comparando con los datos actuales
+        $hasChanges = false;
+        foreach ($data as $key => $value) {
+            if ($patient->{$key} != $value) {
+                $hasChanges = true;
+                break;
+            }
+        }
+
+        if (! $hasChanges) {
+            return redirect()
+                ->route('admin.patients.edit', $patient)
+                ->with('swal', [
+                    'icon'  => 'info',
+                    'title' => 'Sin cambios',
+                    'text'  => 'No se detectaron cambios en el expediente.',
+                ]);
+        }
+
+        $patient->update($data);
+
+        return redirect()
+            ->route('admin.patients.edit', $patient)
+            ->with('swal', [
+                'icon'  => 'success',
+                'title' => 'Expediente actualizado',
+                'text'  => 'El expediente médico ha sido actualizado exitosamente.',
+            ]);
+    }
+}
