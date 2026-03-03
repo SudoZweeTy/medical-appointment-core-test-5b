@@ -6,7 +6,7 @@ use App\Http\Controllers\Admin\PatientController;
 use App\Http\Controllers\Admin\DoctorController;
 use App\Http\Controllers\Admin\SupportTicketController;
 use Illuminate\Support\Facades\Route;
-
+//Im too good
 // Dashboard admin
 Route::get('/', function (){
     return view('admin.dashboard');
